@@ -1,0 +1,91 @@
+DEBUT()
+
+
+mesh = LIRE_MAILLAGE(UNITE=20)
+
+mesh = MODI_MAILLAGE(reuse=mesh,
+                     MAILLAGE=mesh,
+                     ORIE_PEAU=_F(GROUP_MA_INTERNE=('BELLOWS_ALL', ),
+                                  GROUP_MA_PEAU=('FLANGE1_press', 'FLANGE2_press', 'BELLOWS_press')))
+
+#comment: meshLIN = CREA_MAILLAGE(MAILLAGE=mesh,
+#comment:                         QUAD_LINE=_F(TOUT='OUI'))
+
+model = AFFE_MODELE(AFFE=_F(MODELISATION='3D',
+                            PHENOMENE='MECANIQUE',
+                            TOUT='OUI'),
+                    MAILLAGE=mesh)
+
+steel = DEFI_MATERIAU(ELAS=_F(E=205000.0,
+                              NU=0.3))
+
+fieldmat = AFFE_MATERIAU(AFFE=_F(MATER=(steel, ),
+                                 TOUT='OUI'),
+                         MODELE=model)
+
+func = DEFI_FONCTION(INTERPOL=('LIN', ),
+                     NOM_PARA='INST',
+                     PROL_DROITE='CONSTANT',
+                     PROL_GAUCHE='CONSTANT',
+                     VALE=(0.0, 0.0, 1.0, 1.0))
+
+listr = DEFI_LIST_REEL(DEBUT=0.0,
+                       INTERVALLE=_F(JUSQU_A=1.0,
+                                     NOMBRE=1))
+
+times = DEFI_LIST_INST(DEFI_LIST=_F(LIST_INST=listr),
+                       METHODE='AUTO')
+
+FIX = AFFE_CHAR_CINE(MECA_IMPO=_F(DX=0.0,
+                                  DY=0.0,
+                                  DZ=0.0,
+                                  GROUP_MA=('FLANGE1_FIX', 'FLANGE2_displace')),
+                     MODELE=model)
+
+pressure = AFFE_CHAR_MECA(MODELE=model,
+                          PRES_REP=_F(GROUP_MA=('BELLOWS_press', 'FLANGE1_press', 'FLANGE2_press'),
+                                      PRES=28.0))
+
+LIAISONS = AFFE_CHAR_MECA(LIAISON_MAIL=(_F(GROUP_MA_ESCL=('BELLOWS_conn_FLANGE1', ),
+                                           GROUP_MA_MAIT=('FLANGE1_ALL', )),
+                                        _F(GROUP_MA_ESCL=('BELLOWS_conn_FLANGE2', ),
+                                           GROUP_MA_MAIT=('FLANGE2_ALL', ))),
+                          MODELE=model)
+
+resnonl = STAT_NON_LINE(CHAM_MATER=fieldmat,
+                        COMPORTEMENT=_F(DEFORMATION='PETIT',
+                                        RELATION='ELAS',
+                                        TOUT='OUI'),
+                        CONVERGENCE=_F(ITER_GLOB_MAXI=100,
+                                       RESI_GLOB_RELA=1e-06),
+                        EXCIT=(_F(CHARGE=FIX),
+                               _F(CHARGE=LIAISONS),
+                               _F(CHARGE=pressure,
+                                  FONC_MULT=func)),
+                        INCREMENT=_F(INST_FIN=1.0,
+                                     LIST_INST=times),
+                        METHODE='NEWTON',
+                        MODELE=model,
+                        NEWTON=_F(MATRICE='TANGENTE',
+                                  PREDICTION='ELASTIQUE',
+                                  REAC_INCR=1,
+                                  REAC_ITER=1),
+                        SOLVEUR=_F(GESTION_MEMOIRE='AUTO',
+                                   METHODE='MUMPS',
+                                   RENUM='AUTO'))
+
+#comment: MACR_ADAP_MAIL(ADAPTATION='DERAFFINEMENT_UNIFORME',
+#comment:                MAILLAGE_N=mesh,
+#comment:                MAILLAGE_NP1=CO('m_coarse'))
+
+resnonl = CALC_CHAMP(reuse=resnonl,
+                     CHAM_MATER=fieldmat,
+                     CRITERES=('SIEQ_NOEU', ),
+                     MODELE=model,
+                     RESULTAT=resnonl)
+
+IMPR_RESU(FORMAT='MED',
+          RESU=_F(RESULTAT=resnonl),
+          UNITE=80)
+
+FIN()
