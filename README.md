@@ -1,4 +1,4 @@
-# Steel-bellows-under-internal-pressure
+# Steel-bellows-under-internal-pressure-Salome-Meca-Code-Aster
 A steel bellows is subjected to an internal pressure of 50bars.
 
 This is a kind of basic example of a simulation in Salome-Meca/Code_Aster. The geometry is prepared in Salome-Meca (minor repairs, designing the flanges). Meshing is performed in SMESH with netgen, flanges and bellows are meshed separately and glued together in Code_Aster via liaisons. Wall thickness is 1mm only, very thin compared to the overall size. A pressure of 50bars is applied to the internal surfaces. The bottom surfaces of both flanges are fixed. The simulation results in approx. 7M DOFs and takes about 1000s on a dual CPU workstation.
